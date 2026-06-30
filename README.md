@@ -1,6 +1,4 @@
-# DS Serviços — Site Next.js
-
-Projeto final preparado para deploy na Vercel.
+# DS Serviços - Site institucional Next.js
 
 ## Rodar localmente
 
@@ -17,15 +15,15 @@ Abra: http://localhost:3000
 npm run check
 ```
 
-Este comando executa typecheck, lint, build e auditoria de segurança.
+## Ajustes incluídos nesta versão
 
-## Produção
+- Menu mobile em tela cheia, com fundo escuro e itens mais legíveis.
+- Menu fecha ao clicar nos links, no fundo, no botão de fechar ou pressionando `Esc`.
+- Hero com vídeo do YouTube em looping, sem controles visíveis, com autoplay e mudo.
+- Headers de segurança preservados para produção.
 
-- Headers de segurança ficam ativos somente em produção para não quebrar o ambiente local.
-- CSP permite WhatsApp, YouTube e imagens do Unsplash usadas no layout.
-- Formulário envia os dados para o WhatsApp da DS Serviços.
-- Site mobile first, com menu hamburger funcional e responsividade desktop/tablet/mobile.
+## Deploy na Vercel
 
-## Próximo ajuste recomendado
-
-Quando selecionar as imagens definitivas, baixe-as, converta para WebP/AVIF e substitua as URLs remotas por arquivos locais em `public/images/`.
+1. Suba o projeto para um repositório no GitHub.
+2. Importe o repositório na Vercel.
+3. Use o comando de build padrão: `next build`.

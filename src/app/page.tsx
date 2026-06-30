@@ -110,6 +110,14 @@ export default function Home() {
       <Header />
 
       <section id="inicio" className="hero section-dark">
+        <div className="hero-video" aria-hidden="true">
+          <iframe
+            src="https://www.youtube.com/embed/dZHPqo7_2Rw?autoplay=1&mute=1&controls=0&loop=1&playlist=dZHPqo7_2Rw&playsinline=1&rel=0&modestbranding=1&disablekb=1&fs=0&iv_load_policy=3"
+            title="Vídeo institucional de segurança DS Serviços"
+            allow="autoplay; encrypted-media; picture-in-picture"
+            tabIndex={-1}
+          />
+        </div>
         <div className="container hero-inner">
           <div className="hero-content">
             <p className="eyebrow">Segurança inteligente</p>

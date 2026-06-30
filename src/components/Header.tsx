@@ -2,16 +2,16 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Menu, X } from "lucide-react";
+import { Home, Menu, ShieldCheck, Sparkles, UserRound, X, Mail, MessageCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 
 const navItems = [
-  { label: "Início", href: "#inicio" },
-  { label: "Serviços", href: "#servicos" },
-  { label: "Tecnologia", href: "#tecnologia" },
-  { label: "Sobre nós", href: "#sobre" },
-  { label: "Diferenciais", href: "#diferenciais" },
-  { label: "Contato", href: "#contato" }
+  { label: "Início", href: "#inicio", icon: Home },
+  { label: "Serviços", href: "#servicos", icon: ShieldCheck },
+  { label: "Tecnologia", href: "#tecnologia", icon: Sparkles },
+  { label: "Sobre nós", href: "#sobre", icon: UserRound },
+  { label: "Diferenciais", href: "#diferenciais", icon: ShieldCheck },
+  { label: "Contato", href: "#contato", icon: Mail }
 ];
 
 export function Header() {
@@ -27,7 +27,19 @@ export function Header() {
 
   useEffect(() => {
     document.body.classList.toggle("menu-open", open);
-    return () => document.body.classList.remove("menu-open");
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setOpen(false);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.classList.remove("menu-open");
+      window.removeEventListener("keydown", handleKeyDown);
+    };
   }, [open]);
 
   function closeMenu() {
@@ -69,14 +81,30 @@ export function Header() {
         type="button"
       />
 
-      <div className={`mobile-menu ${open ? "is-open" : ""}`}>
-        {navItems.map((item) => (
-          <Link key={item.href} href={item.href} onClick={closeMenu}>{item.label}</Link>
-        ))}
-        <Link className="btn btn-primary" href="https://wa.me/5538999701900" target="_blank" rel="noopener noreferrer" onClick={closeMenu}>
+      <aside className={`mobile-menu ${open ? "is-open" : ""}`} aria-hidden={!open}>
+        <div className="mobile-menu-header">
+          <Image src="/logo-ds-servicos.png" alt="DS Serviços" width={190} height={42} />
+          <button className="mobile-menu-close" aria-label="Fechar menu" onClick={closeMenu} type="button">
+            <X size={28} />
+          </button>
+        </div>
+
+        <nav className="mobile-menu-nav" aria-label="Menu mobile">
+          {navItems.map(({ href, label, icon: Icon }) => (
+            <Link key={href} href={href} onClick={closeMenu}>
+              <Icon size={22} />
+              <span>{label}</span>
+            </Link>
+          ))}
+        </nav>
+
+        <Link className="btn btn-primary mobile-menu-cta" href="https://wa.me/5538999701900" target="_blank" rel="noopener noreferrer" onClick={closeMenu}>
+          <MessageCircle size={18} />
           Solicitar orçamento
         </Link>
-      </div>
+
+        <p className="mobile-menu-note">Atendimento rápido pelo WhatsApp para empresas, condomínios, obras, indústrias e eventos.</p>
+      </aside>
     </header>
   );
 }
