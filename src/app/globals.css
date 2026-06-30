@@ -42,12 +42,15 @@ p { color: var(--muted); line-height: 1.72; }
 .desktop-nav a:first-child { color: var(--cyan); border-bottom: 2px solid var(--cyan); padding-bottom: 7px; }
 .desktop-nav a:hover { color: var(--cyan); }
 .header-cta { min-height: 43px; padding-inline: 20px; font-size: .7rem; }
-.menu-button { display: none; border: 0; background: transparent; color: #fff; padding: 8px; }
+.menu-button { display: none; position: relative; z-index: 1012; border: 1px solid rgba(255,255,255,.16); border-radius: 10px; background: rgba(255,255,255,.06); color: #fff; padding: 8px; cursor: pointer; }
 .mobile-menu, .mobile-backdrop { display: none; }
 
 .hero { position: relative; min-height: 100vh; padding: 145px 0 120px; overflow: hidden; background: var(--dark); }
-.hero-video { position: absolute; inset: 0; z-index: 0; overflow: hidden; background: #020b10; pointer-events: none; }
-.hero-video iframe { position: absolute; top: 50%; left: 50%; width: max(100vw, 177.78vh); height: max(56.25vw, 100vh); transform: translate(-50%, -50%); border: 0; pointer-events: none; }
+.hero-video { position: absolute; inset: 0; z-index: 0; overflow: hidden; background:
+  linear-gradient(90deg, rgba(2,11,16,.95), rgba(2,11,16,.42)),
+  url('https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1600&q=80') center/cover; pointer-events: none; }
+.youtube-background-frame { position: absolute; top: 50%; left: 50%; width: max(100vw, 177.78vh); height: max(56.25vw, 100vh); transform: translate(-50%, -50%); border: 0; pointer-events: none; opacity: 0; transition: opacity .65s ease; }
+.youtube-background-frame.is-loaded { opacity: 1; }
 .hero::before { content: ""; position: absolute; inset: 0; z-index: 1; background: linear-gradient(90deg, rgba(2,11,16,.98) 0%, rgba(2,11,16,.86) 34%, rgba(2,11,16,.40) 62%, rgba(2,11,16,.82) 100%); pointer-events: none; }
 .hero::after { content: ""; position: absolute; inset: 0; z-index: 2; background:
   radial-gradient(circle at 76% 18%, rgba(8,183,232,.18), transparent 22%),
@@ -184,6 +187,15 @@ details p { margin: 12px 0 0; font-size: .9rem; }
 .video-frame { position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 18px; }
 .video-frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
 
+/* Vídeos YouTube como background: iframe sem interação, com fade-in para evitar tela preta.
+   Observação: para remover 100% qualquer UI do YouTube em todos os navegadores, o ideal é usar MP4 local. */
+.drone-video-inline { position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 18px; background:
+  linear-gradient(135deg, rgba(2,11,16,.52), rgba(8,183,232,.16)),
+  url('https://images.unsplash.com/photo-1508614589041-895b88991e3e?auto=format&fit=crop&w=1000&q=80') center/cover; box-shadow: var(--shadow); border: 1px solid rgba(8,183,232,.20); }
+.drone-video-inline::after { content: ""; position: absolute; inset: 0; z-index: 2; pointer-events: none; background: linear-gradient(180deg, rgba(2,11,16,.04), rgba(2,11,16,.22)); }
+.drone-loop-video { position: absolute; inset: 0; overflow: hidden; }
+.drone-loop-video .youtube-background-frame { width: max(100%, 177.78%); height: max(100%, 56.25vw); min-width: 100%; min-height: 100%; }
+
 .reveal { animation: fadeUp .65s ease both; }
 @keyframes heroIn { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes fadeUp { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: translateY(0); } }
@@ -222,7 +234,7 @@ details p { margin: 12px 0 0; font-size: .9rem; }
   .mobile-menu-cta { width: 100%; min-height: 56px; margin-top: auto; }
   .mobile-menu-note { margin: 0; padding: 16px; border: 1px solid rgba(8,183,232,.22); border-radius: 14px; background: rgba(8,183,232,.08); color: rgba(255,255,255,.78); font-size: .86rem; line-height: 1.55; }
   .hero { min-height: 100vh; padding: 118px 0 34px; }
-  .hero-video iframe { width: max(120vw, 177.78vh); height: max(67.5vw, 100vh); }
+  .hero-video .youtube-background-frame { width: max(120vw, 177.78vh); height: max(67.5vw, 100vh); }
   .hero::before { background: linear-gradient(180deg, rgba(2,11,16,.96) 0%, rgba(2,11,16,.90) 48%, rgba(2,11,16,.62) 100%); }
   .hero-actions { display: grid; }
   .stats-section { margin-top: 0; background: var(--dark); padding: 0 0 14px; }

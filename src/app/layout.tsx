@@ -70,6 +70,11 @@ const structuredData = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="pt-BR">
+      <head>
+        <link rel="preconnect" href="https://www.youtube-nocookie.com" />
+        <link rel="preconnect" href="https://www.google.com" />
+        <link rel="dns-prefetch" href="https://www.youtube-nocookie.com" />
+      </head>
       <body>
         <a className="skip-link" href="#conteudo">Pular para o conteúdo</a>
         {children}
