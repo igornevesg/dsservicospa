@@ -1,0 +1,3 @@
+Contact: mailto:comercial@dsservicospa.com.br
+Preferred-Languages: pt-BR
+Canonical: https://dsservicospa.com.br/.well-known/security.txt
