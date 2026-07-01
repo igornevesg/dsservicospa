@@ -8,14 +8,14 @@ const csp = [
   "object-src 'none'",
   "frame-ancestors 'self'",
   "form-action 'self' https://wa.me https://api.whatsapp.com",
-  "img-src 'self' data: blob: https://images.unsplash.com https://plus.unsplash.com https://i.ytimg.com",
+  "img-src 'self' data: blob: https://images.unsplash.com https://plus.unsplash.com",
   "media-src 'self'",
   "font-src 'self' data:",
   "style-src 'self' 'unsafe-inline'",
   "style-src-elem 'self' 'unsafe-inline'",
   "script-src 'self' 'unsafe-inline'",
   "connect-src 'self'",
-  "frame-src https://www.youtube.com https://www.youtube-nocookie.com"
+  "frame-src 'self'"
 ].join("; ");
 
 const productionSecurityHeaders = [
@@ -36,8 +36,7 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "images.unsplash.com" },
-      { protocol: "https", hostname: "plus.unsplash.com" },
-      { protocol: "https", hostname: "i.ytimg.com" }
+      { protocol: "https", hostname: "plus.unsplash.com" }
     ],
     formats: ["image/avif", "image/webp"]
   },

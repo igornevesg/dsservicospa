@@ -26,7 +26,7 @@ import {
 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { DroneVideo } from "@/components/DroneVideo";
-import { YouTubeBackground } from "@/components/YouTubeBackground";
+import { LocalVideo } from "@/components/LocalVideo";
 import { ContactForm } from "@/components/ContactForm";
 
 const whatsapp = "https://wa.me/5538999701900";
@@ -111,11 +111,14 @@ export default function Home() {
       <Header />
 
       <section id="inicio" className="hero section-dark">
-        <YouTubeBackground
-          videoId="dZHPqo7_2Rw"
-          title="Vídeo institucional de segurança DS Serviços"
-          className="hero-video"
-        />
+        <div className="hero-video" aria-hidden="true">
+          <LocalVideo
+            src="/videos/hero.mp4"
+            poster="/logo-ds-servicos.png"
+            label="Vídeo institucional de segurança DS Serviços"
+            preload="auto"
+          />
+        </div>
         <div className="container hero-inner">
           <div className="hero-content">
             <p className="eyebrow">Segurança inteligente</p>
@@ -146,7 +149,14 @@ export default function Home() {
 
       <section id="sobre" className="section about-section">
         <div className="container about-grid reveal">
-          <div className="photo-box about-photo" aria-label="Profissional de segurança corporativa em frente a prédio moderno" />
+          <div className="about-video-card" aria-label="Vídeo institucional da DS Serviços">
+            <LocalVideo
+              src="/videos/hero.mp4"
+              poster="/logo-ds-servicos.png"
+              label="Vídeo institucional da DS Serviços"
+            />
+            <div className="video-soft-overlay" />
+          </div>
           <div className="about-copy">
             <p className="eyebrow">Quem somos</p>
             <h2>Segurança, tecnologia e <span>confiança.</span></h2>
