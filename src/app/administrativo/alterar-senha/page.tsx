@@ -1,0 +1,9 @@
+"use client";
+import {FormEvent,useState} from "react";
+import {useRouter} from "next/navigation";
+import styles from "../login/page.module.css";
+export default function AlterarSenhaPage(){
+  const router=useRouter();const [password,setPassword]=useState("");const [confirm,setConfirm]=useState("");const [error,setError]=useState("");const [busy,setBusy]=useState(false);
+  async function submit(event:FormEvent){event.preventDefault();setError("");if(password!==confirm){setError("As senhas não coincidem.");return;}setBusy(true);try{const response=await fetch("/api/auth/password",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({password})});const body=await response.json();if(!response.ok)throw new Error(body.error||"Não foi possível alterar a senha.");router.replace("/administrativo");router.refresh();}catch(reason){setError(reason instanceof Error?reason.message:"Não foi possível alterar a senha.");}finally{setBusy(false);}}
+  return <main className={styles.page}><section className={styles.card}><div><p className={styles.eyebrow}>Primeiro acesso</p><h1>Crie sua senha definitiva</h1><p>A senha temporária não poderá continuar sendo usada.</p></div><form onSubmit={submit} style={{display:"grid",gap:"1rem"}}><label>Nova senha<input type="password" autoComplete="new-password" minLength={12} maxLength={128} value={password} onChange={e=>setPassword(e.target.value)} required/></label><label>Confirmar senha<input type="password" autoComplete="new-password" minLength={12} maxLength={128} value={confirm} onChange={e=>setConfirm(e.target.value)} required/></label><small>Use 12 ou mais caracteres com maiúscula, minúscula, número e símbolo.</small>{error&&<p role="alert">{error}</p>}<button disabled={busy}>{busy?"Alterando...":"Salvar nova senha"}</button></form></section></main>;
+}

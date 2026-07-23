@@ -150,15 +150,15 @@ export function GeradorPlantoes() {
           <Link href="/" aria-label="Voltar ao site da DS Serviços">
             <Image src="/logo-ds-servicos.png" alt="DS Serviços" width={178} height={39} priority />
           </Link>
-          <Link className={styles.backLink} href="/">Voltar ao site</Link>
+          <Link className={styles.backLink} href="/administrativo">Painel administrativo</Link>
         </div>
       </header>
 
       <section className={styles.hero}>
         <div className={styles.container}>
           <span className={styles.eyebrow}>Área administrativa</span>
-          <h1>Gerador de <em>plantões</em></h1>
-          <p>Calcule automaticamente finais de semana e feriados, totalize as horas e prepare a relação para faturamento.</p>
+          <h1><em>Plantões especiais</em></h1>
+          <p>Uso exclusivo para empresas atendidas somente em finais de semana e feriados. Calcule as horas e prepare a relação para faturamento.</p>
         </div>
       </section>
 

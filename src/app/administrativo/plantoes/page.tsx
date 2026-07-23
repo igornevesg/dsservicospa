@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { GeradorPlantoes } from "@/components/plantoes/GeradorPlantoes";
 
 export const metadata: Metadata = {
-  title: "Gerador de Plantões",
-  description: "Ferramenta administrativa para cálculo mensal de plantões da DS Serviços.",
+  title: "Plantões Especiais",
+  description: "Cálculo de plantões para empresas atendidas exclusivamente em finais de semana e feriados.",
   robots: { index: false, follow: false },
 };
 

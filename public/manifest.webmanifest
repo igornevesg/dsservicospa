@@ -1,0 +1,12 @@
+{
+  "name": "Ponto DS Serviços",
+  "short_name": "Ponto DS",
+  "description": "Portal interno de registro de jornada da DS Serviços.",
+  "start_url": "/funcionario/login",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#020b10",
+  "theme_color": "#020b10",
+  "orientation": "portrait-primary",
+  "lang": "pt-BR"
+}

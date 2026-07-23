@@ -20,6 +20,8 @@ export const metadata: Metadata = {
   alternates: {
     canonical: "/"
   },
+  manifest: "/manifest.webmanifest",
+  applicationName: "DS Serviços",
   openGraph: {
     title: "DS Serviços | Segurança Inteligente",
     description: "Segurança patrimonial, monitoramento com drones, portaria, controle de acesso e facilities para empresas.",
