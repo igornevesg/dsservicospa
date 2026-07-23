@@ -44,8 +44,19 @@ export function GeradorPlantoes() {
       try {
         const salvas = JSON.parse(dadosSalvos) as EmpresaPlantao[];
         if (Array.isArray(salvas) && salvas.length > 0) {
-          setEmpresas(salvas);
-          setEmpresaAtivaId(salvas[0].id);
+          const nomesPadraoPorId = new Map(
+            EMPRESAS_INICIAIS.map((empresa) => [empresa.id, empresa.nome]),
+          );
+          const nomesLegados = new Set(["Empresa 1", "Empresa 2", "Empresa 3"]);
+          const migradas = salvas.map((empresa) => {
+            const nomePadrao = nomesPadraoPorId.get(empresa.id);
+            return nomePadrao && nomesLegados.has(empresa.nome.trim())
+              ? { ...empresa, nome: nomePadrao }
+              : empresa;
+          });
+
+          setEmpresas(migradas);
+          setEmpresaAtivaId(migradas[0].id);
         }
       } catch {
         window.localStorage.removeItem(CHAVE_STORAGE);
