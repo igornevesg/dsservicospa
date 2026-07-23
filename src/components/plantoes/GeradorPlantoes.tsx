@@ -19,9 +19,9 @@ import styles from "./GeradorPlantoes.module.css";
 
 const CHAVE_STORAGE = "ds-servicos-configuracao-plantoes-v1";
 const EMPRESAS_INICIAIS: EmpresaPlantao[] = [
-  { id: "empresa-1", nome: "Empresa 1", valorHora: "31,53", feriadosManuais: [] },
-  { id: "empresa-2", nome: "Empresa 2", valorHora: "31,53", feriadosManuais: [] },
-  { id: "empresa-3", nome: "Empresa 3", valorHora: "31,53", feriadosManuais: [] },
+  { id: "empresa-1", nome: "Nova Geração Montes Claros", valorHora: "31,53", feriadosManuais: [] },
+  { id: "empresa-2", nome: "Nova Geração Janaúba", valorHora: "31,53", feriadosManuais: [] },
+  { id: "empresa-3", nome: "Nova Geração Capelinha", valorHora: "31,53", feriadosManuais: [] },
 ];
 
 function criarId() {
