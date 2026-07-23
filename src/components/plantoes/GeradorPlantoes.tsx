@@ -211,7 +211,19 @@ export function GeradorPlantoes() {
             <div className={styles.manualList}>
               {empresaAtiva.feriadosManuais.length ? empresaAtiva.feriadosManuais.map((feriado) => (
                 <div className={styles.manualRow} key={feriado.id}>
-                  <input aria-label="Data do feriado" type="date" value={feriado.data} onChange={(e) => atualizarFeriadoManual(feriado.id, "data", e.target.value)} />
+                  <label className={styles.dateField}>
+                    <span>Data do feriado</span>
+                    <span className={styles.dateInputWrapper}>
+                      {!feriado.data ? <span className={styles.datePlaceholder}>dd/mm/aaaa</span> : null}
+                      <input
+                        aria-label="Data do feriado"
+                        className={`${styles.dateInput} ${!feriado.data ? styles.dateInputEmpty : ""}`}
+                        type="date"
+                        value={feriado.data}
+                        onChange={(e) => atualizarFeriadoManual(feriado.id, "data", e.target.value)}
+                      />
+                    </span>
+                  </label>
                   <input aria-label="Nome do feriado" placeholder="Nome do feriado" value={feriado.nome} onChange={(e) => atualizarFeriadoManual(feriado.id, "nome", e.target.value)} />
                   <button className={styles.removeButton} onClick={() => removerFeriadoManual(feriado.id)} type="button" aria-label="Remover feriado"><Trash2 size={18} /></button>
                 </div>
