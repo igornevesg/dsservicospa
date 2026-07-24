@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { assertSameOrigin, jsonNoStore } from "@/lib/auth/security";
 import { requireManager } from "@/lib/auth/session";
+import { isValidCnpj, normalizeCnpj } from "@/lib/cnpj";
 import { supabaseFetch } from "@/lib/supabase/server";
 
 export async function POST(request: NextRequest) {
@@ -10,8 +11,9 @@ export async function POST(request: NextRequest) {
   const body = (await request.json()) as Record<string, unknown>;
   const legalName = String(body.legalName || "").trim().slice(0, 160);
   const displayName = String(body.displayName || "").trim().slice(0, 120);
-  const taxId = String(body.taxId || "").replace(/\D/g, "").slice(0, 14) || null;
+  const taxId = normalizeCnpj(body.taxId) || null;
   if (!legalName || !displayName) return jsonNoStore({ error: "Preencha razão social e nome da empresa." }, 400);
+  if (taxId && !isValidCnpj(taxId)) return jsonNoStore({ error: "Informe um CNPJ válido." }, 400);
   const result = await supabaseFetch<Array<{id:string}>>("/rest/v1/companies?select=id", {
     method: "POST", serviceRole:true,
     headers: { Prefer: "return=representation" },
