@@ -18,11 +18,31 @@ export async function POST(request: NextRequest) {
 
   const company = await supabaseFetch<Array<{ id: string }>>(`/rest/v1/companies?select=id&public_id=eq.${encodeURIComponent(companyId)}&limit=1`, { token: session.token });
   if (!company.response.ok || !company.data?.[0]) return jsonNoStore({ error: "Empresa inválida." }, 400);
-  const result = await supabaseFetch<Array<{id:string}>>("/rest/v1/work_sites?select=id", {
+  const result = await supabaseFetch<Array<{id:string;public_id:string}>>("/rest/v1/work_sites?select=id,public_id", {
     method: "POST", serviceRole:true, headers: { Prefer: "return=representation" },
     body: JSON.stringify({ company_id: company.data[0].id, name, address, latitude, longitude, allowed_radius_meters: radius }),
   });
   if (!result.response.ok) return jsonNoStore({ error: "Não foi possível cadastrar o posto." }, 400);
   await supabaseFetch("/rest/v1/audit_logs",{method:"POST",serviceRole:true,headers:{Prefer:"return=minimal"},body:JSON.stringify({actor_user_id:session.user.id,action:"work_site.created",entity_table:"work_sites",entity_id:result.data?.[0]?.id})});
-  return jsonNoStore({ ok: true }, 201);
+  return jsonNoStore({ ok: true, publicId: result.data?.[0]?.public_id }, 201);
+}
+
+export async function DELETE(request: NextRequest) {
+  try { assertSameOrigin(request); } catch { return jsonNoStore({ error: "Requisição inválida." }, 403); }
+  const session = await requireManager();
+  if (!session) return jsonNoStore({ error: "Acesso negado." }, 403);
+  const publicId = request.nextUrl.searchParams.get("publicId") || "";
+  if (!/^[a-f0-9]{24}$/.test(publicId)) return jsonNoStore({ error: "Posto inválido." }, 400);
+
+  const current = await supabaseFetch<Array<{id:string;name:string}>>(`/rest/v1/work_sites?select=id,name&public_id=eq.${publicId}&is_active=eq.true&limit=1`, { token:session.token });
+  const site = current.data?.[0];
+  if (!site) return jsonNoStore({ error: "Posto não encontrado ou fora do seu acesso." }, 404);
+
+  const linked = await supabaseFetch<Array<{id:string}>>(`/rest/v1/employees?select=id&default_work_site_id=eq.${site.id}&status=eq.active&limit=1`, { serviceRole:true });
+  if (linked.data?.[0]) return jsonNoStore({ error: "O posto possui funcionários ativos. Remova ou transfira esses funcionários primeiro." }, 409);
+
+  const update = await supabaseFetch(`/rest/v1/work_sites?id=eq.${site.id}`, { method:"PATCH", serviceRole:true, headers:{Prefer:"return=minimal"}, body:JSON.stringify({is_active:false}) });
+  if (!update.response.ok) return jsonNoStore({ error: "Não foi possível remover o posto." }, 400);
+  await supabaseFetch("/rest/v1/audit_logs", { method:"POST", serviceRole:true, headers:{Prefer:"return=minimal"}, body:JSON.stringify({actor_user_id:session.user.id,action:"work_site.deactivated",entity_table:"work_sites",entity_id:site.id,metadata:{name:site.name}}) });
+  return jsonNoStore({ ok:true });
 }

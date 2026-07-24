@@ -3,7 +3,7 @@ import { requireStaff } from "@/lib/auth/session";
 import { jsonNoStore } from "@/lib/auth/security";
 import { supabaseFetch } from "@/lib/supabase/server";
 
-type Row={public_id:string;work_date:string;occurrence:string;clock_in:string|null;break_start:string|null;break_end:string|null;clock_out:string|null;employees:{public_id:string;full_name:string;registration_number:string;companies:{public_id:string;display_name:string}|null}|null;work_sites:{public_id:string;name:string}|null;manual_sheet_batches:{status:string}|null};
+type Row={public_id:string;work_date:string;occurrence:string;clock_in:string|null;break_start:string|null;break_end:string|null;clock_out:string|null;employees:{public_id:string;full_name:string;registration_number:string|null;companies:{public_id:string;display_name:string}|null}|null;work_sites:{public_id:string;name:string}|null;manual_sheet_batches:{status:string}|null};
 const validMonth=/^\d{4}-(0[1-9]|1[0-2])$/;
 function nextMonth(month:string){const [year,value]=month.split("-").map(Number);return value===12?`${year+1}-01`:`${year}-${String(value+1).padStart(2,"0")}`;}
 function minutes(start:string|null,end:string|null){if(!start||!end)return 0;const [sh,sm]=start.split(":").map(Number),[eh,em]=end.split(":").map(Number);return Math.max(0,eh*60+em-sh*60-sm);}

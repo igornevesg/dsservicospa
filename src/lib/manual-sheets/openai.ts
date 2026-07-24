@@ -13,7 +13,7 @@ export type ExtractedRow={
   warning:string|null;
 };
 
-type Employee={public_id:string;full_name:string;registration_number:string};
+type Employee={public_id:string;full_name:string;registration_number:string|null};
 
 const schema={
   type:"object",additionalProperties:false,
@@ -58,7 +58,7 @@ export async function extractManualSheet(input:{bytes:Buffer;mime:string;filenam
   }else{
     documentPart={type:"input_image",image_url:`data:${input.mime};base64,${input.bytes.toString("base64")}`};
   }
-  const roster=input.employees.map(e=>`${e.public_id} | ${e.registration_number} | ${e.full_name}`).join("\n");
+  const roster=input.employees.map(e=>`${e.public_id} | ${e.registration_number||"SEM MATRÍCULA"} | ${e.full_name}`).join("\n");
   const prompt=`Leia esta folha de ponto manuscrita da competência ${input.month}. Extraia somente informações visíveis. Converta datas para YYYY-MM-DD e horários para HH:MM. Relacione employeePublicId apenas quando nome ou matrícula corresponderem com segurança à lista abaixo; caso contrário use null. Não invente horários ilegíveis. Marque baixa confiança e explique em warning. A saída é uma proposta sujeita à revisão humana.\n\nFUNCIONÁRIOS:\n${roster}`;
   try{
     const response=await fetch("https://api.openai.com/v1/responses",{method:"POST",headers:{Authorization:`Bearer ${apiKey}`,"Content-Type":"application/json"},body:JSON.stringify({

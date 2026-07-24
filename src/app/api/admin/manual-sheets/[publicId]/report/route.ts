@@ -6,7 +6,7 @@ import { supabaseFetch } from "@/lib/supabase/server";
 
 type Context={params:Promise<{publicId:string}>};
 type Batch={id:string;document_path:string|null;document_mime:string|null;original_filename:string|null;competence:string;companies:{display_name:string}|null;work_sites:{name:string}|null};
-type Entry={work_date:string;occurrence:string;clock_in:string|null;break_start:string|null;break_end:string|null;clock_out:string|null;employees:{full_name:string;registration_number:string}|null};
+type Entry={work_date:string;occurrence:string;clock_in:string|null;break_start:string|null;break_end:string|null;clock_out:string|null;employees:{full_name:string;registration_number:string|null}|null};
 const safe=(value:string)=>value.normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^\x20-\x7E]/g,"?");
 
 export async function GET(_request:NextRequest,context:Context){

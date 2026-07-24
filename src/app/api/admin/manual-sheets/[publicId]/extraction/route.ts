@@ -26,7 +26,7 @@ export async function POST(request:NextRequest,context:Context){
   const session=await requireStaff();if(!session)return jsonNoStore({error:"Acesso não autorizado."},403);
   const actorId=session.user.id as string;
   const {publicId}=await context.params;const batch=await batchFor(publicId,session.token);if(!batch||batch.status!=="draft"||!batch.document_path||!batch.document_mime||!batch.original_filename)return jsonNoStore({error:"Anexe a folha antes de solicitar a leitura automática."},409);
-  const employeesResult=await supabaseFetch<Array<{public_id:string;full_name:string;registration_number:string}>>(`/rest/v1/employees?select=public_id,full_name,registration_number&company_id=eq.${batch.company_id}&status=eq.active&order=full_name`,{token:session.token});
+  const employeesResult=await supabaseFetch<Array<{public_id:string;full_name:string;registration_number:string|null}>>(`/rest/v1/employees?select=public_id,full_name,registration_number&company_id=eq.${batch.company_id}&status=eq.active&order=full_name`,{token:session.token});
   const model=process.env.OPENAI_OCR_MODEL||"gpt-5.6-terra";
   const created=await supabaseFetch<Array<{id:string;public_id:string}>>("/rest/v1/manual_sheet_extractions?select=id,public_id",{method:"POST",serviceRole:true,headers:{Prefer:"return=representation"},body:JSON.stringify({batch_id:batch.id,status:"processing",model,created_by:actorId})});
   const record=created.data?.[0];if(!record)return jsonNoStore({error:"Não foi possível iniciar a leitura."},500);
