@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AlertTriangle, Clock3, Download, FileCheck2, RefreshCw, TimerReset } from "lucide-react";
+import { MonthYearPicker } from "./MonthYearPicker";
 import styles from "./monthly-clock.module.css";
 
 type EventType = "clock_in" | "break_start" | "break_end" | "clock_out";
@@ -88,7 +89,7 @@ export function MonthlyClockReport() {
   return <section className={styles.report}>
     <div className={styles.heading}><div><span>Folhas manuscritas</span><h2>Conferência da competência</h2><p>As horas são calculadas a partir dos horários digitados e vinculados à folha assinada.</p></div><div className={styles.actions}><button type="button" onClick={() => void load()} disabled={busy}><RefreshCw className={busy ? styles.spin : undefined}/>Atualizar</button><button type="button" onClick={exportCsv} disabled={!filtered.length}><Download/>Exportar CSV</button></div></div>
     <div className={styles.filters}>
-      <label>Competência<input type="month" value={month} onChange={(event) => setMonth(event.target.value)} max={currentMonth()}/></label>
+      <label>Competência<MonthYearPicker value={month} onChange={setMonth} max={currentMonth()}/></label>
       <label>Empresa<select value={companyId} onChange={(event) => { setCompanyId(event.target.value); setEmployeeId(""); }}><option value="">Todas</option>{companies.map((company) => <option key={company.public_id} value={company.public_id}>{company.display_name}</option>)}</select></label>
       <label>Funcionário<select value={employeeId} onChange={(event) => setEmployeeId(event.target.value)}><option value="">Todos</option>{employees.map((employee) => <option key={employee.public_id} value={employee.public_id}>{employee.full_name}</option>)}</select></label>
       <label className={styles.checkbox}><input type="checkbox" checked={onlyPending} onChange={(event) => setOnlyPending(event.target.checked)}/>Somente pendências</label>
