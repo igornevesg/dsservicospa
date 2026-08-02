@@ -103,7 +103,7 @@ function employeeRows(rows: string[][], companies: ReturnType<typeof companyRows
     if (!matched) companies.push({externalKey:companyKey,displayName:post,legalName:post,taxId:null,address:null});
     const shift = clean(row[shiftColumn]||""); const jobTitle = clean(row[jobColumn]||""); const siteName = employeeSite(jobTitle, shift);
     const siteKey = sourceKey(`${companyKey}|${key(siteName)}`);
-    result.push({externalKey:sourceKey(`${key(fullName)}|${companyKey}`),fullName,cpf:isValidCpf(cpf)?cpf:null,companyKey,siteKey,siteName,shift:shift||null,jobTitle:jobTitle||null});
+    result.push({externalKey:sourceKey(key(fullName)),fullName,cpf:isValidCpf(cpf)?cpf:null,companyKey,siteKey,siteName,shift:shift||null,jobTitle:jobTitle||null});
   }
   return result;
 }
