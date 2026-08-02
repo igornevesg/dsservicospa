@@ -7,6 +7,10 @@ import { supabaseFetch } from "@/lib/supabase/server";
 const EMPLOYEES_SHEET = "1KYOqNpVl_CbLJajuH3djgIHvrtvNKp_8BV9zCfnThBY";
 const COMPANIES_SHEET = "1ircfeGwxgfpOHy9OWPA_Yjdv8rLC-QgSQo5kxichyXo";
 
+type CompanyRow = {externalKey:string;displayName:string;legalName:string;taxId:string|null;address:string|null};
+type SiteRow = {externalKey:string;companyKey:string;name:string;address:string|null};
+type EmployeeRow = {externalKey:string;fullName:string;cpf:string|null;companyKey:string;siteKey:string;siteName:string;shift:string|null;jobTitle:string|null};
+
 function csv(text: string) {
   const rows: string[][] = []; let row: string[] = []; let field = ""; let quoted = false;
   for (let index = 0; index < text.length; index += 1) {
@@ -35,7 +39,7 @@ async function download(sheet: string) {
 }
 
 function companyRows(rows: string[][]) {
-  const result: Array<{externalKey:string;displayName:string;legalName:string;taxId:string|null;address:string|null}> = [];
+  const result: CompanyRow[] = [];
   for (let index = 0; index < rows.length; index += 1) {
     const first = clean(rows[index][0] || ""); const second = clean(rows[index][1] || "");
     if (!first || isInstruction(first) || (!/R\$/i.test(second) && !/\d{2}[.\d/-]{12,}/.test(first))) continue;
@@ -63,24 +67,48 @@ function bestCompany(post: string, companies: ReturnType<typeof companyRows>) {
 }
 
 function employeeRows(rows: string[][], companies: ReturnType<typeof companyRows>) {
-  const result: Array<{externalKey:string;fullName:string;cpf:string|null;companyKey:string;siteName:string;shift:string|null;jobTitle:string|null}> = [];
+  const result: EmployeeRow[] = [];
+  const headers = (rows[0] || []).map(value => key(value));
+  const column = (...names: string[]) => headers.findIndex(header => names.some(name => header === key(name)));
+  const nameColumn = column("nome");
+  const cpfColumn = column("cpf");
+  const postColumn = column("posto");
+  const shiftColumn = column("turno");
+  const jobColumn = column("funcao", "função", "cargo");
+  if ([nameColumn, cpfColumn, postColumn, shiftColumn, jobColumn].some(index => index < 0)) {
+    throw new Error("A planilha de funcionários não contém as colunas NOME, CPF, POSTO, TURNO e FUNÇÃO.");
+  }
   for (const row of rows.slice(1)) {
-    const fullName = clean(row[0] || ""); const post = clean(row[2] || "");
+    const fullName = clean(row[nameColumn] || ""); const post = clean(row[postColumn] || "");
     if (!fullName || !post) continue;
-    const cpf = normalizeCpf(row[1]); const matched = bestCompany(post, companies);
+    const cpf = normalizeCpf(row[cpfColumn]); const matched = bestCompany(post, companies);
     const companyKey = matched?.externalKey || sourceKey(key(post));
     if (!matched) companies.push({externalKey:companyKey,displayName:post,legalName:post,taxId:null,address:null});
-    result.push({externalKey:sourceKey(`${key(fullName)}|${companyKey}`),fullName,cpf:isValidCpf(cpf)?cpf:null,companyKey,siteName:post,shift:clean(row[3]||"")||null,jobTitle:clean(row[4]||"")||null});
+    const siteKey = sourceKey(`${companyKey}|${key(post)}`);
+    result.push({externalKey:sourceKey(`${key(fullName)}|${companyKey}`),fullName,cpf:isValidCpf(cpf)?cpf:null,companyKey,siteKey,siteName:post,shift:clean(row[shiftColumn]||"")||null,jobTitle:clean(row[jobColumn]||"")||null});
   }
   return result;
 }
 
+function siteRows(companies: CompanyRow[], employees: EmployeeRow[]) {
+  const sites = new Map<string, SiteRow>();
+  for (const employee of employees) {
+    sites.set(employee.siteKey, {externalKey:employee.siteKey,companyKey:employee.companyKey,name:employee.siteName,address:null});
+  }
+  for (const company of companies) {
+    if ([...sites.values()].some(site => site.companyKey === company.externalKey)) continue;
+    const externalKey = sourceKey(`${company.externalKey}|${key(company.displayName)}`);
+    sites.set(externalKey, {externalKey,companyKey:company.externalKey,name:company.displayName,address:company.address});
+  }
+  return [...sites.values()];
+}
+
 export async function syncGoogleSheets() {
   const [companySheet, employeeSheet] = await Promise.all([download(COMPANIES_SHEET), download(EMPLOYEES_SHEET)]);
-  const companies = companyRows(companySheet); const employees = employeeRows(employeeSheet, companies);
+  const companies = companyRows(companySheet); const employees = employeeRows(employeeSheet, companies); const sites = siteRows(companies, employees);
   const result = await supabaseFetch<{companies:number;employees:number;sites:number}>("/rest/v1/rpc/sync_google_sheet_roster", {
-    method: "POST", serviceRole: true, body: JSON.stringify({p_companies:companies,p_employees:employees}),
+    method: "POST", serviceRole: true, body: JSON.stringify({p_companies:companies,p_sites:sites,p_employees:employees}),
   });
-  if (!result.response.ok) throw new Error("O banco recusou a sincronização das planilhas.");
+  if (!result.response.ok) throw new Error(`O banco recusou a sincronização das planilhas (${result.response.status}).`);
   return {...result.data,companyRows:companySheet.length,employeeRows:employeeSheet.length};
 }
