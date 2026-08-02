@@ -10,7 +10,26 @@ type BrasilApiCompany = {
   razao_social?: unknown;
   nome_fantasia?: unknown;
   descricao_situacao_cadastral?: unknown;
+  situacao_cadastral?: unknown;
+  tipo_logradouro?: unknown;
+  logradouro?: unknown;
+  numero?: unknown;
+  complemento?: unknown;
+  bairro?: unknown;
+  municipio?: unknown;
+  uf?: unknown;
+  cep?: unknown;
 };
+
+function text(value: unknown) { return typeof value === "string" ? value.trim() : ""; }
+function companyPayload(payload: BrasilApiCompany) {
+  const legalName = text(payload.razao_social).slice(0, 160);
+  const tradeName = text(payload.nome_fantasia).slice(0, 120);
+  const status = (text(payload.descricao_situacao_cadastral) || text(payload.situacao_cadastral)).slice(0, 80);
+  const street = [text(payload.tipo_logradouro), text(payload.logradouro)].filter(Boolean).join(" ");
+  const address = [street, text(payload.numero), text(payload.complemento), text(payload.bairro), text(payload.municipio), text(payload.uf), text(payload.cep)].filter(Boolean).join(", ").slice(0, 240);
+  return { legalName, tradeName, status, address };
+}
 
 export async function GET(request: NextRequest, context: Context) {
   const session = await requireManager();
@@ -30,25 +49,16 @@ export async function GET(request: NextRequest, context: Context) {
   }
 
   try {
-    const response = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpj}`, {
-      headers: { Accept: "application/json" },
-      cache: "no-store",
-      signal: AbortSignal.timeout(8_000),
-    });
-    if (response.status === 404) {
-      return jsonNoStore({ error: "CNPJ não encontrado na base consultada." }, 404);
+    const sources = [`https://brasilapi.com.br/api/cnpj/v1/${cnpj}`, `https://api.opencnpj.org/${cnpj}`];
+    for (const url of sources) {
+      try {
+        const response = await fetch(url, { headers: { Accept: "application/json", "User-Agent": "DS-Servicos/1.0" }, cache: "no-store", signal: AbortSignal.timeout(8_000) });
+        if (!response.ok) continue;
+        const data = companyPayload((await response.json()) as BrasilApiCompany);
+        if (data.legalName) return jsonNoStore({ cnpj, ...data });
+      } catch { continue; }
     }
-    if (!response.ok) throw new Error("UPSTREAM_ERROR");
-
-    const payload = (await response.json()) as BrasilApiCompany;
-    const legalName = typeof payload.razao_social === "string" ? payload.razao_social.trim().slice(0, 160) : "";
-    const tradeName = typeof payload.nome_fantasia === "string" ? payload.nome_fantasia.trim().slice(0, 120) : "";
-    const status = typeof payload.descricao_situacao_cadastral === "string"
-      ? payload.descricao_situacao_cadastral.trim().slice(0, 80)
-      : "";
-
-    if (!legalName) throw new Error("INVALID_UPSTREAM_RESPONSE");
-    return jsonNoStore({ cnpj, legalName, tradeName, status });
+    return jsonNoStore({ error: "CNPJ não encontrado nas bases consultadas." }, 404);
   } catch {
     return jsonNoStore(
       { error: "A consulta de CNPJ está indisponível no momento. Preencha os dados manualmente." },

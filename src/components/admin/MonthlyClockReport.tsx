@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { AlertTriangle, Clock3, Download, FileCheck2, RefreshCw, TimerReset } from "lucide-react";
 import { MonthYearPicker } from "./MonthYearPicker";
 import styles from "./monthly-clock.module.css";
+import issueStyles from "./monthly-inconsistencies.module.css";
 
 type EventType = "clock_in" | "break_start" | "break_end" | "clock_out";
 type Day = {
@@ -17,7 +18,9 @@ type Day = {
   complete: boolean;
   rejectedAttempts: number;
   adjustedEvents: EventType[];
+  inconsistencies: string[];
 };
+type Inconsistency={key:string;date:string;employee:string;messages:string[];source:"system"|"paper"};
 
 function currentMonth() {
   const parts = new Intl.DateTimeFormat("en-US", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit" }).formatToParts(new Date());
@@ -51,6 +54,7 @@ export function MonthlyClockReport() {
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState("");
   const [truncated, setTruncated] = useState(false);
+  const [inconsistencies, setInconsistencies] = useState<Inconsistency[]>([]);
 
   const load = useCallback(async () => {
     setBusy(true); setError("");
@@ -58,7 +62,7 @@ export function MonthlyClockReport() {
       const response = await fetch(`/api/admin/monthly-report?month=${encodeURIComponent(month)}`, { cache: "no-store" });
       const body = await response.json();
       if (!response.ok) throw new Error(body.error || "Não foi possível gerar o fechamento.");
-      setDays(body.days || []); setTruncated(Boolean(body.truncated));
+      setDays(body.days || []); setInconsistencies(body.inconsistencies || []); setTruncated(Boolean(body.truncated));
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Não foi possível gerar o fechamento.");
     } finally { setBusy(false); }
@@ -71,14 +75,13 @@ export function MonthlyClockReport() {
   const filtered = useMemo(() => days.filter((day) => (!companyId || day.employee.companies?.public_id === companyId) && (!employeeId || day.employee.public_id === employeeId) && (!onlyPending || !day.complete || day.rejectedAttempts > 0)), [days, companyId, employeeId, onlyPending]);
   const totalMinutes = filtered.reduce((sum, day) => sum + day.workedMinutes, 0);
   const pending = filtered.filter((day) => !day.complete).length;
-  const rejections = filtered.reduce((sum, day) => sum + day.rejectedAttempts, 0);
 
   function exportCsv() {
-    const header = ["Data", "Funcionário", "Matrícula", "Empresa", "Posto", "Entrada", "Início intervalo", "Retorno intervalo", "Saída", "Horas trabalhadas", "Intervalo", "Situação", "Tentativas recusadas", "Eventos ajustados"];
+    const header = ["Data", "Funcionário", "Matrícula", "Empresa", "Posto", "Entrada", "Início intervalo", "Retorno intervalo", "Saída", "Horas trabalhadas", "Intervalo", "Situação", "Inconsistências"];
     const rows = filtered.map((day) => [
       displayDate(day.date), day.employee.full_name, day.employee.registration_number, day.employee.companies?.display_name || "", day.site?.name || "",
       time(day.times.clock_in), time(day.times.break_start), time(day.times.break_end), time(day.times.clock_out), hours(day.workedMinutes), hours(day.breakMinutes),
-      day.complete ? "Completa" : "Pendente", day.rejectedAttempts, day.adjustedEvents.join(", "),
+      day.complete ? "Completa" : "Pendente", day.inconsistencies.join(" | "),
     ]);
     const content = `\uFEFF${[header, ...rows].map((row) => row.map(csvCell).join(";")).join("\r\n")}`;
     const url = URL.createObjectURL(new Blob([content], { type: "text/csv;charset=utf-8" }));
@@ -94,9 +97,10 @@ export function MonthlyClockReport() {
       <label>Funcionário<select value={employeeId} onChange={(event) => setEmployeeId(event.target.value)}><option value="">Todos</option>{employees.map((employee) => <option key={employee.public_id} value={employee.public_id}>{employee.full_name}</option>)}</select></label>
       <label className={styles.checkbox}><input type="checkbox" checked={onlyPending} onChange={(event) => setOnlyPending(event.target.checked)}/>Somente pendências</label>
     </div>
-    <div className={styles.metrics}><article><Clock3/><span>Horas apuradas</span><strong>{hours(totalMinutes)}</strong></article><article><FileCheck2/><span>Jornadas completas</span><strong>{filtered.length - pending}</strong></article><article><TimerReset/><span>Jornadas pendentes</span><strong>{pending}</strong></article><article><AlertTriangle/><span>Tentativas recusadas</span><strong>{rejections}</strong></article></div>
+    <div className={styles.metrics}><article><Clock3/><span>Horas apuradas</span><strong>{hours(totalMinutes)}</strong></article><article><FileCheck2/><span>Jornadas completas</span><strong>{filtered.length - pending}</strong></article><article><TimerReset/><span>Jornadas pendentes</span><strong>{pending}</strong></article><article><AlertTriangle/><span>Inconsistências</span><strong>{inconsistencies.length}</strong></article></div>
     {error && <p className={styles.error}>{error}</p>}{truncated && <p className={styles.warning}><AlertTriangle/>O limite mensal de 5.000 registros foi atingido. Exporte e confira a competência antes do fechamento.</p>}
-    <div className={styles.tableWrap}><table><thead><tr><th>Data</th><th>Funcionário</th><th>Posto</th><th>Entrada</th><th>Intervalo</th><th>Retorno</th><th>Saída</th><th>Horas</th><th>Situação</th></tr></thead><tbody>{filtered.map((day) => <tr key={day.key}><td>{displayDate(day.date)}</td><td><strong>{day.employee.full_name}</strong><small>{day.employee.registration_number?`${day.employee.registration_number} · `:""}{day.employee.companies?.display_name}</small></td><td>{day.site?.name || "—"}</td><td>{time(day.times.clock_in)}</td><td>{time(day.times.break_start)}</td><td>{time(day.times.break_end)}</td><td>{time(day.times.clock_out)}</td><td><strong>{hours(day.workedMinutes)}</strong></td><td><span className={day.complete ? styles.complete : styles.pending}>{day.complete ? "Completa" : "Pendente"}</span>{day.rejectedAttempts > 0 && <small>{day.rejectedAttempts} recusada(s)</small>}{day.adjustedEvents.length > 0 && <small>{day.adjustedEvents.length} ajuste(s) aprovado(s)</small>}</td></tr>)}</tbody></table>{busy && <p className={styles.empty}><RefreshCw className={styles.spin}/>Calculando competência...</p>}{!busy && !filtered.length && !error && <p className={styles.empty}>Nenhuma jornada encontrada para os filtros selecionados.</p>}</div>
+    <div className={styles.tableWrap}><table><thead><tr><th>Data</th><th>Funcionário</th><th>Posto</th><th>Entrada</th><th>Intervalo</th><th>Retorno</th><th>Saída</th><th>Horas</th><th>Situação</th><th>Inconsistências</th></tr></thead><tbody>{filtered.map((day) => <tr key={day.key}><td>{displayDate(day.date)}</td><td><strong>{day.employee.full_name}</strong><small>{day.employee.registration_number?`${day.employee.registration_number} · `:""}{day.employee.companies?.display_name}</small></td><td>{day.site?.name || "—"}</td><td>{time(day.times.clock_in)}</td><td>{time(day.times.break_start)}</td><td>{time(day.times.break_end)}</td><td>{time(day.times.clock_out)}</td><td><strong>{hours(day.workedMinutes)}</strong></td><td><span className={day.complete ? styles.complete : styles.pending}>{day.complete ? "Completa" : "Pendente"}</span></td><td>{day.inconsistencies.length?<ul className={issueStyles.issueList}>{day.inconsistencies.map(issue=><li key={issue}>{issue}</li>)}</ul>:"—"}</td></tr>)}</tbody></table>{busy && <p className={styles.empty}><RefreshCw className={styles.spin}/>Calculando competência...</p>}{!busy && !filtered.length && !error && <p className={styles.empty}>Nenhuma jornada encontrada para os filtros selecionados.</p>}</div>
+    <section className={issueStyles.inconsistencyPanel}><h3><AlertTriangle/>Todas as inconsistências da competência</h3>{inconsistencies.length?<div className={issueStyles.issueCards}>{inconsistencies.map(item=><article key={item.key}><strong>{item.date?displayDate(item.date):"Data não identificada"} · {item.employee}</strong><small>{item.source==="paper"?"Folha assinada":"Lançamento do sistema"}</small><ul>{item.messages.map(message=><li key={message}>{message}</li>)}</ul></article>)}</div>:<p>Nenhuma inconsistência identificada nesta competência.</p>}</section>
     <p className={styles.note}><AlertTriangle/>A folha manuscrita assinada permanece como documento original. Divergências na digitação exigem correção justificada e auditável.</p>
   </section>;
 }

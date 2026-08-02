@@ -21,7 +21,7 @@ export async function GET() {
     count("/rest/v1/work_sites?select=id&is_active=eq.true", session.token),
     count("/rest/v1/employees?select=id&status=eq.active", session.token),
     count("/rest/v1/profiles?select=id&role=eq.supervisor&is_active=eq.true", session.token),
-    supabaseFetch("/rest/v1/companies?select=public_id,display_name,legal_name,tax_id,is_active&is_active=eq.true&order=display_name", { token: session.token }),
+    supabaseFetch("/rest/v1/companies?select=public_id,display_name,legal_name,tax_id,address,is_active&is_active=eq.true&order=display_name", { token: session.token }),
     supabaseFetch("/rest/v1/work_sites?select=public_id,name,address,latitude,longitude,allowed_radius_meters,is_active,companies(display_name,public_id)&is_active=eq.true&order=name", { token: session.token }),
     supabaseFetch("/rest/v1/employees?select=public_id,full_name,registration_number,corporate_email,cpf_last4,phone,job_title,shift_pattern,status,companies(display_name,public_id),work_sites!employees_default_work_site_id_fkey(name,public_id)&status=eq.active&order=full_name", { token: session.token }),
     supabaseFetch("/rest/v1/profiles?select=id,full_name,role,is_active,company_id,companies(display_name,public_id)&role=eq.supervisor&order=full_name", { token: session.token }),

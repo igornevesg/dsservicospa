@@ -65,9 +65,12 @@ export async function PATCH(request:NextRequest,context:Context){
   }
   const batchDetails=await supabaseFetch<Array<{work_site_id:string}>>(`/rest/v1/manual_sheet_batches?select=work_site_id&id=eq.${batch.id}`,{token:session.token});const siteId=batchDetails.data?.[0]?.work_site_id;if(!siteId)return jsonNoStore({error:"Posto da folha não encontrado."},409);
   normalized.forEach(row=>{row.work_site_id=siteId;});
-  const insert=await supabaseFetch("/rest/v1/manual_time_entries",{method:"POST",serviceRole:true,headers:{Prefer:"return=minimal"},body:JSON.stringify(normalized)});
-  if(!insert.response.ok)return jsonNoStore({error:"Existem lançamentos duplicados ou dados que precisam de revisão."},409);
+  const existingResult=await supabaseFetch<Array<{employee_id:string;work_date:string}>>(`/rest/v1/manual_time_entries?select=employee_id,work_date&batch_id=eq.${batch.id}`,{token:session.token});
+  if(!existingResult.response.ok)return jsonNoStore({error:"Não foi possível comparar a folha com os lançamentos diários."},500);
+  const existingKeys=new Set((existingResult.data||[]).map(item=>`${item.employee_id}:${item.work_date}`));
+  const missing=normalized.filter(item=>!existingKeys.has(`${item.employee_id}:${item.work_date}`));
+  if(missing.length){const insert=await supabaseFetch("/rest/v1/manual_time_entries",{method:"POST",serviceRole:true,headers:{Prefer:"return=minimal"},body:JSON.stringify(missing)});if(!insert.response.ok)return jsonNoStore({error:"Não foi possível importar os lançamentos ausentes da folha."},409);}
   await supabaseFetch(`/rest/v1/manual_sheet_extractions?id=eq.${extraction.id}`,{method:"PATCH",serviceRole:true,headers:{Prefer:"return=minimal"},body:JSON.stringify({status:"confirmed",confirmed_by:actorId,confirmed_at:new Date().toISOString(),structured_result:{rows}})});
   await supabaseFetch("/rest/v1/audit_logs",{method:"POST",serviceRole:true,headers:{Prefer:"return=minimal"},body:JSON.stringify({actor_user_id:actorId,action:"manual_sheet.extraction_confirmed",entity_table:"manual_sheet_extractions",entity_id:extraction.id,metadata:{rows:normalized.length,keys:values}})});
-  return jsonNoStore({ok:true,inserted:normalized.length});
+  return jsonNoStore({ok:true,inserted:missing.length,compared:normalized.length-missing.length});
 }

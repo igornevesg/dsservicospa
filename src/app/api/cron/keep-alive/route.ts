@@ -1,5 +1,6 @@
 import { timingSafeEqual } from "node:crypto";
 import { supabaseFetch } from "@/lib/supabase/server";
+import { syncGoogleSheets } from "@/lib/sync/google-sheets";
 
 export const dynamic = "force-dynamic";
 
@@ -28,10 +29,10 @@ export async function GET(request: Request) {
   }
 
   try {
-    const result = await supabaseFetch<Array<{ id: string }>>(
+    const [result, sync] = await Promise.all([supabaseFetch<Array<{ id: string }>>(
       "/rest/v1/companies?select=id&limit=1",
       { serviceRole: true },
-    );
+    ), syncGoogleSheets()]);
 
     if (!result.response.ok) {
       return Response.json(
@@ -41,7 +42,7 @@ export async function GET(request: Request) {
     }
 
     return Response.json(
-      { ok: true, checkedAt: new Date().toISOString() },
+      { ok: true, checkedAt: new Date().toISOString(), sync },
       { headers: { "Cache-Control": "no-store" } },
     );
   } catch {
