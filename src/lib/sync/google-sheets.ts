@@ -11,6 +11,8 @@ type CompanyRow = {externalKey:string;displayName:string;legalName:string;taxId:
 type SiteRow = {externalKey:string;companyKey:string;name:string;address:string|null};
 type EmployeeRow = {externalKey:string;fullName:string;cpf:string|null;companyKey:string;siteKey:string;siteName:string;shift:string|null;jobTitle:string|null};
 
+const STANDARD_SITES = ["Guarda Noturno", "Guarda Diurno", "Serviços Gerais", "Controle de Acesso"] as const;
+
 function csv(text: string) {
   const rows: string[][] = []; let row: string[] = []; let field = ""; let quoted = false;
   for (let index = 0; index < text.length; index += 1) {
@@ -30,7 +32,7 @@ function csv(text: string) {
 const clean = (value: string) => value.trim().replace(/\s+/g, " ");
 const key = (value: string) => clean(value).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\b(residencial|condominio|premium|dos|das|do|da|de)\b/g, " ").replace(/[^a-z0-9]+/g, " ").trim();
 const sourceKey = (value: string) => createHash("sha256").update(value).digest("hex").slice(0, 32);
-const isInstruction = (value: string) => /^(nao |não |somente |emitir |emite |enviar |email |whatsapp|colaboradores|pg\b|valor |vencimento|observa|r\$)/i.test(clean(value));
+const isInstruction = (value: string) => /^(nao |não |somente |deve |emitir |emite |enviar |email |whatsapp|colaboradores|pg\b|valor |vencimento|observa|r\$)/i.test(clean(value));
 
 async function download(sheet: string) {
   const response = await fetch(`https://docs.google.com/spreadsheets/d/${sheet}/export?format=csv`, { cache: "no-store", signal: AbortSignal.timeout(15_000) });
@@ -60,10 +62,25 @@ function bestCompany(post: string, companies: ReturnType<typeof companyRows>) {
   for (const company of companies) {
     const companyKey = key(company.displayName); const a = new Set(postKey.split(" ")); const b = new Set(companyKey.split(" "));
     const overlap = [...a].filter(token => token && b.has(token)).length;
-    const score = postKey === companyKey ? 100 : overlap * 10 - Math.abs(a.size - b.size);
+    const aliases = (
+      (postKey === "leenia" && companyKey === "elenia") ||
+      (postKey === "ypes" && companyKey.includes("ipes")) ||
+      (postKey === "madri" && companyKey === "madrid") ||
+      (postKey.replaceAll(" ", "") === companyKey.replaceAll(" ", "")) ||
+      (postKey.includes("still") && companyKey.includes("sthil"))
+    );
+    const score = postKey === companyKey ? 100 : aliases ? 90 : overlap * 10 - Math.abs(a.size - b.size);
     if (!winner || score > winner.score) winner = {score, company};
   }
   return winner && winner.score >= 9 ? winner.company : null;
+}
+
+function employeeSite(jobTitle: string, shift: string) {
+  const job = key(jobTitle); const workShift = key(shift);
+  if (job.includes("controlador") || job.includes("controle") || job.includes("acesso")) return "Controle de Acesso";
+  if (job.includes("servico") || job.includes("zelador") || job.includes("limpeza")) return "Serviços Gerais";
+  if (workShift.includes("diurno")) return "Guarda Diurno";
+  return "Guarda Noturno";
 }
 
 function employeeRows(rows: string[][], companies: ReturnType<typeof companyRows>) {
@@ -84,28 +101,27 @@ function employeeRows(rows: string[][], companies: ReturnType<typeof companyRows
     const cpf = normalizeCpf(row[cpfColumn]); const matched = bestCompany(post, companies);
     const companyKey = matched?.externalKey || sourceKey(key(post));
     if (!matched) companies.push({externalKey:companyKey,displayName:post,legalName:post,taxId:null,address:null});
-    const siteKey = sourceKey(`${companyKey}|${key(post)}`);
-    result.push({externalKey:sourceKey(`${key(fullName)}|${companyKey}`),fullName,cpf:isValidCpf(cpf)?cpf:null,companyKey,siteKey,siteName:post,shift:clean(row[shiftColumn]||"")||null,jobTitle:clean(row[jobColumn]||"")||null});
+    const shift = clean(row[shiftColumn]||""); const jobTitle = clean(row[jobColumn]||""); const siteName = employeeSite(jobTitle, shift);
+    const siteKey = sourceKey(`${companyKey}|${key(siteName)}`);
+    result.push({externalKey:sourceKey(`${key(fullName)}|${companyKey}`),fullName,cpf:isValidCpf(cpf)?cpf:null,companyKey,siteKey,siteName,shift:shift||null,jobTitle:jobTitle||null});
   }
   return result;
 }
 
-function siteRows(companies: CompanyRow[], employees: EmployeeRow[]) {
+function siteRows(companies: CompanyRow[]) {
   const sites = new Map<string, SiteRow>();
-  for (const employee of employees) {
-    sites.set(employee.siteKey, {externalKey:employee.siteKey,companyKey:employee.companyKey,name:employee.siteName,address:null});
-  }
   for (const company of companies) {
-    if ([...sites.values()].some(site => site.companyKey === company.externalKey)) continue;
-    const externalKey = sourceKey(`${company.externalKey}|${key(company.displayName)}`);
-    sites.set(externalKey, {externalKey,companyKey:company.externalKey,name:company.displayName,address:company.address});
+    for (const name of STANDARD_SITES) {
+      const externalKey = sourceKey(`${company.externalKey}|${key(name)}`);
+      sites.set(externalKey, {externalKey,companyKey:company.externalKey,name,address:company.address});
+    }
   }
   return [...sites.values()];
 }
 
 export async function syncGoogleSheets() {
   const [companySheet, employeeSheet] = await Promise.all([download(COMPANIES_SHEET), download(EMPLOYEES_SHEET)]);
-  const companies = companyRows(companySheet); const employees = employeeRows(employeeSheet, companies); const sites = siteRows(companies, employees);
+  const companies = companyRows(companySheet); const employees = employeeRows(employeeSheet, companies); const sites = siteRows(companies);
   const result = await supabaseFetch<{companies:number;employees:number;sites:number}>("/rest/v1/rpc/sync_google_sheet_roster", {
     method: "POST", serviceRole: true, body: JSON.stringify({p_companies:companies,p_sites:sites,p_employees:employees}),
   });
