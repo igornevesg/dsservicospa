@@ -25,6 +25,27 @@ export async function POST(request: NextRequest) {
   return jsonNoStore({ ok: true, publicId: result.data?.[0]?.public_id }, 201);
 }
 
+export async function PATCH(request: NextRequest) {
+  try { assertSameOrigin(request); } catch { return jsonNoStore({ error: "Requisição inválida." }, 403); }
+  const session = await requireManager();
+  if (!session || session.profile.role !== "admin") return jsonNoStore({ error: "Somente administradores podem editar empresas." }, 403);
+  const body = (await request.json()) as Record<string, unknown>;
+  const publicId = String(body.publicId || "");
+  const legalName = String(body.legalName || "").trim().slice(0, 160);
+  const displayName = String(body.displayName || "").trim().slice(0, 120);
+  const taxId = normalizeCnpj(body.taxId) || null;
+  const address = String(body.address || "").trim().slice(0, 240) || null;
+  if (!/^[a-f0-9]{24}$/.test(publicId) || !legalName || !displayName) return jsonNoStore({ error: "Dados da empresa inválidos." }, 400);
+  if (taxId && !isValidCnpj(taxId)) return jsonNoStore({ error: "Informe um CNPJ válido." }, 400);
+  const current = await supabaseFetch<Array<{id:string;legal_name:string;display_name:string;tax_id:string|null;address:string|null}>>(`/rest/v1/companies?select=id,legal_name,display_name,tax_id,address&public_id=eq.${publicId}&is_active=eq.true&limit=1`, { token:session.token });
+  const company = current.data?.[0];
+  if (!company) return jsonNoStore({ error: "Empresa não encontrada." }, 404);
+  const update = await supabaseFetch(`/rest/v1/companies?id=eq.${company.id}`, { method:"PATCH", serviceRole:true, headers:{Prefer:"return=minimal"}, body:JSON.stringify({legal_name:legalName,display_name:displayName,tax_id:taxId,address}) });
+  if (!update.response.ok) return jsonNoStore({ error: "Não foi possível editar a empresa. Verifique se o CNPJ já está cadastrado." }, 409);
+  await supabaseFetch("/rest/v1/audit_logs", { method:"POST", serviceRole:true, headers:{Prefer:"return=minimal"}, body:JSON.stringify({actor_user_id:session.user.id,action:"company.updated",entity_table:"companies",entity_id:company.id,metadata:{previous:{legal_name:company.legal_name,display_name:company.display_name,tax_id:company.tax_id,address:company.address},updated:{legal_name:legalName,display_name:displayName,tax_id:taxId,address}}}) });
+  return jsonNoStore({ ok:true, publicId });
+}
+
 export async function DELETE(request: NextRequest) {
   try { assertSameOrigin(request); } catch { return jsonNoStore({ error: "Requisição inválida." }, 403); }
   const session = await requireManager();
